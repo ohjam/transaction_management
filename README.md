@@ -62,12 +62,14 @@ No
 
 ## UI
 
+After running application locally, see below URL for UI
+
 http://localhost:8080/index.html
 ![ui.png](other/ui.png)
 
 ## API SPEC
 
-See swagger
+After running application locally, see below URL for swagger
 http://localhost:8080/swagger-ui/index.html#/
 ![swagger.png](other/swagger.png)
 
