@@ -8,3 +8,11 @@ springdoc:
 spring:
   mvc:
     static-path-pattern: /**
+  cache:
+    type: simple
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] traceId: %X{traceId} %logger{32} : %msg%n"
+  level:
+    root: info

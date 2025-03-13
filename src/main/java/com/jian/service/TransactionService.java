@@ -32,23 +32,26 @@ public class TransactionService {
         if (cache != null) {
             return convertToTransaction(cache);
         }
+        log.info("record not in cache");
         var transactionEntity = findFromDB(id);
         return convertToTransaction(transactionEntity);
     }
 
-    @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id", unless = "#result == null")
+    @Caching(
+            put = {
+                    @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id")
+            })
     public TransactionEntity findFromDB(Long id) {
         return transactionRepository.findById(id).orElseThrow(() -> new BusinessException("transaction not found"));
     }
 
     // add new record to DB and update cache
     @Caching(evict = {
-            @CacheEvict(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id"),
             @CacheEvict(value = Constants.CACHE_TRANSACTIONS_KEY_PREFIX, allEntries = true)
     },
             put = {
-            @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id")
-    })
+                    @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id")
+            })
     public TransactionEntity transfer(Transaction transaction) {
         var transactionEntity = new TransactionEntity();
         transactionEntity.setAmount(transaction.getAmount());
@@ -74,12 +77,11 @@ public class TransactionService {
 
     // update record to DB and update cache
     @Caching(evict = {
-            @CacheEvict(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id"),
             @CacheEvict(value = Constants.CACHE_TRANSACTIONS_KEY_PREFIX, allEntries = true)
     },
             put = {
-            @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id")
-    })
+                    @CachePut(value = Constants.CACHE_TRANSACTION_KEY_PREFIX, key = "#result.id")
+            })
     public TransactionEntity updateTransaction(Transaction transaction) {
         var id = transaction.getId();
         if (id == null) {
@@ -94,6 +96,7 @@ public class TransactionService {
         if (transaction.getMemo() != null) {
             transactionInDB.setMemo(transaction.getMemo());
         }
+        log.info("update transaction id {}", id);
         return transactionRepository.save(transactionInDB);
     }
 
