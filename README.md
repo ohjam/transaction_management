@@ -11,15 +11,18 @@ Default
 
 ## 3rd Dependency
 
-| Component               | purpose          |
-| ------------------- | ------------- |
-| spring-boot-starter-web| spring boot web start|
-| spring-boot-starter-test |testing |
-| spring-boot-starter-data-jpa| JPA-based repositories|
-| spring-boot-starter-validation | validate user input    |
+| Component               | purpose                         |
+| ------------------- |---------------------------------|
+| spring-boot-starter-web| spring boot web start           |
+| spring-boot-starter-test | testing                         |
+| spring-boot-starter-data-jpa| JPA-based repositories          |
+| spring-boot-starter-validation | validate user input             |
+| spring-boot-starter-cache | cache                           |
 | lombok     | generate known patterns of code |
-| h2      | in-memory databases        |
-| springdoc-openapi-starter-webmvc-ui | API documentation        |
+| h2      | in-memory databases             |
+| springdoc-openapi-starter-webmvc-ui | API documentation               |
+| caffeine | cache               |
+
 
 ## Getting Started
 

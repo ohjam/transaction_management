@@ -1,10 +1,12 @@
 package com.jian.config;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jian.common.util.Constants;
 import com.jian.filter.LogFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class Configs {
@@ -31,9 +34,15 @@ public class Configs {
     @Bean
     public CacheManager cacheManager() {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
-        Cache transactionsCache = new ConcurrentMapCache(Constants.CACHE_TRANSACTION_KEY_PREFIX);
-        Cache transactionCache = new ConcurrentMapCache(Constants.CACHE_TRANSACTIONS_KEY_PREFIX);
-        cacheManager.setCaches(Arrays.asList(transactionsCache, transactionCache));
+        Caffeine<Object, Object> listCacheBuilder = Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(10, TimeUnit.MINUTES);
+        Caffeine<Object, Object> singleCacheBuilder = Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(10, TimeUnit.MINUTES);
+        CaffeineCache listCache = new CaffeineCache(Constants.CACHE_TRANSACTION_KEY_PREFIX, listCacheBuilder.build());
+        CaffeineCache singleCache = new CaffeineCache(Constants.CACHE_TRANSACTIONS_KEY_PREFIX, singleCacheBuilder.build());
+        cacheManager.setCaches(Arrays.asList(listCache, singleCache));
 
         return cacheManager;
     }

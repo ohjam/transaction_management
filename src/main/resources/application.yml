@@ -9,7 +9,7 @@ spring:
   mvc:
     static-path-pattern: /**
   cache:
-    type: simple
+    type: caffeine
 
 logging:
   pattern:
