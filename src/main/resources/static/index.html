@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ugly UI</title>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            padding: 8px;
+            width: 250px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .error {
+            color: #dc3545;
+            margin: 10px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="loader" id="loading"></div>
+
+    <div class="section">
+        <h1>get transaction by id</h1>
+        <div class="input-group">
+            <input type="number" id="transactionId" placeholder="输入交易ID">
+            <button onclick="loadTransaction()">查询详情</button>
+        </div>
+        <div id="error" class="error"></div>
+        <div id="result" class="result" style="display: none;">
+            <h3>detail</h3>
+            <table>
+                <tr>
+                    <td><strong>交易ID：</strong></td>
+                    <td id="txn-id"></td>
+                </tr>
+                <tr>
+                    <td><strong>金额：</strong></td>
+                    <td id="amount"></td>
+                </tr>
+                <tr>
+                    <td><strong>创建时间：</strong></td>
+                    <td id="create-time"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h1>add transaction</h1>
+        <div class="input-group">
+            <input type="number" id="addAmount" min="0" placeholder="输入金额">
+            <input type="text" id="currency" placeholder="货币">
+            <input type="number" id="remittorAccount" placeholder="汇款人账号">
+            <input type="number" id="recipientAccount" placeholder="收款人账号">
+            <input type="text" id="memo" placeholder="备忘">
+            <button onclick="addTransaction()">创建交易</button>
+        </div>
+        <div id="addError" class="error"></div>
+    </div>
+
+    <div class="section" id="editSection">
+        <h1>patch transaction</h1>
+        <div class="input-group">
+            <input type="hidden" id="editId">
+            <input type="number" id="editAmount" min="0" placeholder="输入新金额">
+            <input type="text" id="editCurrency" placeholder="输入新货币">
+            <input type="number" id="editRemittorAccount" placeholder="输入新汇款人账号">
+            <input type="number" id="editRecipientAccount" placeholder="输入新收款人账号">
+            <input type="text" id="editMemo" placeholder="输入新备注">
+            <button onclick="editTransaction()">确认修改</button>
+        </div>
+        <div id="editError" class="error"></div>
+    </div>
+
+    <div class="section">
+        <h1>delete transaction</h1>
+        <div class="input-group">
+            <input type="number" id="deleteTransactionId" placeholder="输入交易ID">
+            <button onclick="deleteTransaction()">删除交易</button>
+        </div>
+        <div id="deleteError" class="error"></div>
+    </div>
+
+    <div class="section">
+        <h1>get transaction list</h1>
+        <div class="input-group">
+            <input type="number" id="pageNo" value="0" min="0" style="width: 80px;">
+            <input type="number" id="pageSize" value="10" min="1" style="width: 100px;">
+            <button onclick="loadTransactions()">加载数据</button>
+        </div>
+        <div id="transactionList" class="result"></div>
+        <div id="listError" class="error"></div>
+    </div>
+</div>
+
+<script>
+
+    function toggleLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+        document.querySelectorAll('button').forEach(btn => {
+            btn.disabled = show;
+        });
+    }
+
+    async function loadTransaction() {
+        const transactionId = document.getElementById('transactionId').value;
+        const errorDiv = document.getElementById('error');
+        const resultDiv = document.getElementById('result');
+
+        errorDiv.innerHTML = '';
+        resultDiv.style.display = 'none';
+
+        if (!transactionId) {
+            errorDiv.innerHTML = '请输入有效的交易ID';
+            return;
+        }
+
+        try {
+            toggleLoading(true);
+            const response = await fetch(`/api/v1/transactions/${transactionId}`);
+
+            if (!response.ok) throw new Error(`HTTP错误 ${response.status}`);
+
+            const data = await response.json();
+
+            if (data.success) {
+                // 更新详情展示
+                document.getElementById('txn-id').textContent = data.data.id;
+                document.getElementById('amount').textContent = `¥${data.data.amount.toFixed(2)}`;
+                document.getElementById('create-time').textContent = new Date(data.data.createTime).toLocaleString();
+                resultDiv.style.display = 'block';
+
+                // 预填充编辑表单
+                document.getElementById('editId').value = data.data.id;
+                document.getElementById('editAmount').value = data.data.amount;
+                document.getElementById('editRemittorAccount').value = data.data.remittorAccount;
+                document.getElementById('editCurrency').value = data.data.currency;
+                document.getElementById('editRecipientAccount').value = data.data.recipientAccount;
+                document.getElementById('editMemo').value = data.data.memo;
+                document.getElementById('editSection').style.display = 'block';
+            } else {
+                throw new Error(data.message || '未知错误');
+            }
+        } catch (error) {
+            errorDiv.innerHTML = `查询失败: ${error.message}`;
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    async function addTransaction() {
+        const amount = document.getElementById('addAmount').value;
+        const currency = document.getElementById('currency').value;
+        const remittorAccount = document.getElementById('remittorAccount').value;
+        const recipientAccount = document.getElementById('recipientAccount').value;
+        const memo = document.getElementById('memo').value;
+        const errorDiv = document.getElementById('addError');
+
+        if (!amount || isNaN(amount)) {
+            errorDiv.innerHTML = '请输入有效的金额';
+            return;
+        }
+
+        try {
+            toggleLoading(true);
+            const response = await fetch('/api/v1/transactions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    amount: amount, // 如果后端需要数值类型则用 parseFloat(amount)
+                    currency: currency,
+                    remittorAccount: remittorAccount,
+                    recipientAccount: recipientAccount,
+                    memo: memo
+                })
+            });
+
+            if (!response.ok) throw new Error('请求失败');
+
+            const data = await response.json();
+
+            if (data.success) {
+                errorDiv.style.color = '#28a745';
+                errorDiv.innerHTML = '✓ 交易创建成功';
+                document.getElementById('addAmount').value = '';
+                setTimeout(() => errorDiv.innerHTML = '', 2000);
+                loadTransactions();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            errorDiv.style.color = '#dc3545';
+            errorDiv.innerHTML = `✗ 操作失败: ${error.message}`;
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+
+    async function editTransaction() {
+        const id = document.getElementById('editId').value;
+        const amount = document.getElementById('editAmount').value;
+        const currency = document.getElementById('editCurrency').value;
+        const remittorAccount = document.getElementById('editRemittorAccount').value;
+        const recipientAccount = document.getElementById('editRecipientAccount').value;
+        const memo = document.getElementById('editMemo').value;
+        const errorDiv = document.getElementById('editError');
+
+        if (!id || !amount) {
+            errorDiv.innerHTML = '请先查询需要修改的交易';
+            return;
+        }
+
+        try {
+            toggleLoading(true);
+            const response = await fetch(`/api/v1/transactions`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: id, // 如果后端需要数值类型则用 parseFloat(amount)
+                    amount: amount, // 如果后端需要数值类型则用 parseFloat(amount)
+                    currency: currency,
+                    remittorAccount: remittorAccount,
+                    recipientAccount: recipientAccount,
+                    memo: memo
+                })
+            });
+
+            if (!response.ok) throw new Error('请求失败');
+
+            const data = await response.json();
+
+            if (data.success) {
+                errorDiv.style.color = '#28a745';
+                errorDiv.innerHTML = '✓ 修改成功';
+                setTimeout(() => {
+                    errorDiv.innerHTML = '';
+                    loadTransaction();
+                    loadTransactions();
+                }, 1500);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            errorDiv.style.color = '#dc3545';
+            errorDiv.innerHTML = `✗ 操作失败: ${error.message}`;
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    async function deleteTransaction() {
+        const transactionId = document.getElementById('deleteTransactionId').value;
+        const errorDiv = document.getElementById('deleteError');
+
+        if (!transactionId) {
+            errorDiv.innerHTML = '请输入有效的交易ID';
+            return;
+        }
+
+        if (!confirm(`确定要删除交易 #${transactionId} 吗？`)) return;
+
+        try {
+            toggleLoading(true);
+            const response = await fetch(`/api/v1/transactions/${transactionId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('请求失败');
+
+            const data = await response.json();
+
+            if (data.success) {
+                errorDiv.style.color = '#28a745';
+                errorDiv.innerHTML = '✓ 删除成功';
+                document.getElementById('deleteTransactionId').value = '';
+                setTimeout(() => errorDiv.innerHTML = '', 1500);
+                loadTransactions();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            errorDiv.style.color = '#dc3545';
+            errorDiv.innerHTML = `✗ 操作失败: ${error.message}`;
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    async function loadTransactions() {
+        const pageNo = document.getElementById('pageNo').value || 0;
+        const pageSize = document.getElementById('pageSize').value || 10;
+        const listDiv = document.getElementById('transactionList');
+        const errorDiv = document.getElementById('listError');
+
+        try {
+            toggleLoading(true);
+            const response = await fetch(`/api/v1/transactions?page=${pageNo}&size=${pageSize}`);
+
+            if (!response.ok) throw new Error('请求失败');
+
+            const data = await response.json();
+
+            if (data.success) {
+                let html = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>交易ID</th>
+                                    <th>金额</th>
+                                    <th>货币</th>
+                                    <th>汇款账号</th>
+                                    <th>收款账号</th>
+                                    <th>备忘</th>
+                                    <th>创建时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                data.data.forEach(transaction => {
+                    html += `
+                            <tr>
+                                <td>${transaction.id}</td>
+                                <td>¥${transaction.amount.toFixed(2)}</td>
+                                <td>${transaction.currency}</td>
+                                <td>${transaction.remittorAccount}</td>
+                                <td>${transaction.recipientAccount}</td>
+                                <td>${transaction.memo}</td>
+                                <td>${new Date(transaction.createTime).toLocaleString()}</td>
+                            </tr>`;
+                });
+
+                html += `</tbody></table>`;
+                listDiv.innerHTML = html;
+                errorDiv.innerHTML = '';
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            errorDiv.innerHTML = `✗ 加载失败: ${error.message}`;
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    window.onload = () => {
+        loadTransactions();
+        document.getElementById('pageNo').addEventListener('change', loadTransactions);
+        document.getElementById('pageSize').addEventListener('change', loadTransactions);
+    };
+</script>
+</body>
+</html>

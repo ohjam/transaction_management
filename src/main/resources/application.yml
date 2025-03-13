@@ -1,0 +1,10 @@
+api:
+  urlPrefix: /api/v1
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+
+spring:
+  mvc:
+    static-path-pattern: /**
