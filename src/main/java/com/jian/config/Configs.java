@@ -34,14 +34,11 @@ public class Configs {
     @Bean
     public CacheManager cacheManager() {
         var cacheManager = new SimpleCacheManager();
-        var listCacheBuilder = Caffeine.newBuilder()
+        var cacheBuilder = Caffeine.newBuilder()
                 .maximumSize(1000)
                 .expireAfterWrite(10, TimeUnit.MINUTES);
-        var singleCacheBuilder = Caffeine.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(10, TimeUnit.MINUTES);
-        var listCache = new CaffeineCache(Constants.CACHE_TRANSACTION_KEY_PREFIX, listCacheBuilder.build());
-        var singleCache = new CaffeineCache(Constants.CACHE_TRANSACTIONS_KEY_PREFIX, singleCacheBuilder.build());
+        var listCache = new CaffeineCache(Constants.CACHE_TRANSACTION_KEY_PREFIX, cacheBuilder.build());
+        var singleCache = new CaffeineCache(Constants.CACHE_TRANSACTIONS_KEY_PREFIX, cacheBuilder.build());
         cacheManager.setCaches(Arrays.asList(listCache, singleCache));
 
         return cacheManager;
